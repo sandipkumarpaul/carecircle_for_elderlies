@@ -123,4 +123,4 @@ Alternatively, on Windows with Edge installed, set `$env:E2E_BROWSER='msedge'` a
 
 Sprint 1 is due **8 November 2026**, with five assessed features across the team: Sandip CC-01; Tanjila CC-03/04; Tasin CC-06; Saif CC-12. Later deadlines and all twenty feature assignments are documented in [the sprint plan](docs/sprints.md) and [acceptance criteria](docs/features.md).
 
-Significant packages and data sources must be recorded in [dependencies](docs/dependencies.md). AI-assisted work is disclosed in [AI-use records](docs/ai-use.md), as required by the course. Each member remains responsible for reviewing, testing and understanding their contribution.
+Significant packages and data sources must be recorded in [dependencies](docs/dependencies.md). Each member remains responsible for reviewing, testing and understanding their contribution.

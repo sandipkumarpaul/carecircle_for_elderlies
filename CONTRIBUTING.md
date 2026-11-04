@@ -34,6 +34,6 @@ Synthetic patient invites caregiver -> caregiver confirms a printed prescription
 
 ## Review and evidence
 
-Test normal, invalid, boundary, unrelated-patient, repeated-request and concurrent-update cases where applicable. Report the commands actually run and their outcomes. Update implementation status, sprint records and dependency/AI-use records with real evidence; do not fabricate Git history, test results or review/approval records.
+Test normal, invalid, boundary, unrelated-patient, repeated-request and concurrent-update cases where applicable. Report the commands actually run and their outcomes. Update implementation status, sprint records and dependency records with real evidence; do not fabricate Git history, test results or review/approval records.
 
 Every member owns the model, controller, service, interface and relevant tests for their features. Shared infrastructure ownership does not transfer all frontend/backend implementation to one person. Each contributor must understand and be able to explain and modify their submitted code during the viva.
