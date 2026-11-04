@@ -8,5 +8,5 @@
 
 ## Remaining limitations / integration dependencies
 
-## Student walkthrough and AI assistance
+## Implementation walkthrough
 
