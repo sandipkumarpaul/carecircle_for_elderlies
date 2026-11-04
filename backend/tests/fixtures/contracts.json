@@ -1,0 +1,37 @@
+{
+  "prescription_item": {
+    "medicine_id": "00000000-0000-4000-8000-000000000001",
+    "quantity_per_dose": "1.000",
+    "unit": "tablet",
+    "start_date": "2026-11-05",
+    "end_date": "2026-11-11",
+    "schedule_kind": "fixed_times",
+    "times_local": ["08:00", "20:00"],
+    "timezone": "Asia/Dhaka",
+    "meal_relation": "after_meal",
+    "instructions": "Synthetic contract fixture; not a real prescription."
+  },
+  "schedule_command": {
+    "patient_id": "00000000-0000-4000-8000-000000000002",
+    "prescription_id": "00000000-0000-4000-8000-000000000003",
+    "previous_version_id": null,
+    "new_version_id": "00000000-0000-4000-8000-000000000004",
+    "effective_from": "2026-11-05T00:00:00+06:00"
+  },
+  "adherence_command": {
+    "patient_id": "00000000-0000-4000-8000-000000000002",
+    "dose_event_id": "00000000-0000-4000-8000-000000000005",
+    "actor_user_id": "00000000-0000-4000-8000-000000000006",
+    "action": "taken",
+    "occurred_at": "2026-11-05T02:05:00Z",
+    "idempotency_key": "00000000-0000-4000-8000-000000000007"
+  },
+  "alert_command": {
+    "patient_id": "00000000-0000-4000-8000-000000000002",
+    "type": "missed_dose",
+    "severity": "warning",
+    "source_type": "dose_event",
+    "source_id": "00000000-0000-4000-8000-000000000008",
+    "dedupe_key": "missed_dose:00000000-0000-4000-8000-000000000008"
+  }
+}
