@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const python = process.platform === 'win32' ? '".venv\\Scripts\\python.exe"' : '.venv/bin/python';
+const python = process.env.E2E_PYTHON ? `"${process.env.E2E_PYTHON}"` : process.platform === 'win32' ? '".venv\\Scripts\\python.exe"' : '.venv/bin/python';
 export default defineConfig({
   testDir: './tests', timeout: 60000, workers: 1, retries: 0,
   reporter: 'list',

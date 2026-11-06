@@ -5,7 +5,7 @@ These assignments are the team's supplied roadmap. All five features per person 
 | Member | Features | Shared responsibility | Start with |
 |---|---|---|---|
 | Sandip Kumar Paul | CC-01, CC-16, CC-18, CC-19, CC-20 | Authentication, patient authorization, alert creation | Review the completed CC-01 baseline; next assessed feature is CC-18 |
-| Tanjila Afsari Rubina | CC-02, CC-03, CC-04, CC-05, CC-13 | Database setup and migration coordination | Extend migration 0001_sandip; Sprint 1 CC-03 medicine import/search and CC-04 interaction/duplicate/allergy warnings |
+| Tanjila Afsari Rubina | CC-02, CC-03, CC-04, CC-05, CC-13 | Database setup and migration coordination | Review implemented CC-03/04 and migration 0002_tanjila; next OCR and prescription revisions |
 | Moinuddin Tasin | CC-06, CC-07, CC-08, CC-11, CC-17 | Separate scheduler worker, notification transport | Schedule generation from confirmed prescription versions, durable dose events and adherence log |
 | Md Shahriar Saif | CC-09, CC-10, CC-12, CC-14, CC-15 | Shared frontend shell, API client, integration test coordination | CC-12 vitals with permission checks; risk experiment using explicitly synthetic data; summary last |
 
@@ -28,3 +28,7 @@ Extend the existing UI shell/API client without rewriting everyone's views. Star
 ## Starting a contribution
 
 Read README.md and docs/status.md, inspect the current implementation, then select your assigned feature and its acceptance criteria. Identify producer/consumer dependencies in docs/contracts.md before changing shared types. Follow CONTRIBUTING.md for branches, migration sequencing, testing and review. Existing Sandip Sprint 1 functionality must continue to work as new modules are added.
+
+## Combined Sprint 1 handoff
+
+CC-03/04 now extend the preserved Sandip baseline. Start with [Tanjila’s handoff](tanjila-sprint-1.md) and [status](status.md). Tasin consumes the canonical prescription tables and must replace the explicit not-integrated schedule state with real transactional regeneration. Saif can continue CC-12 using existing authorization/alerts. New migrations extend 0002_tanjila.

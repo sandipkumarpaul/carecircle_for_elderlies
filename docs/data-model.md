@@ -1,8 +1,8 @@
 # Shared database blueprint
 
-This is the full-project implementation target. **Migration 0001_sandip implements the identity/circle/alert foundation subset**, with a database-backed auth rate limiter; other domain entities remain planned. The migration and ORM code are authoritative for the implemented subset. Tanjila coordinates subsequent revisions. All UUID PK/FK columns use CHAR(36); all entities have `id`, `created_at`, `updated_at` unless noted. Use MySQL 8.4/InnoDB/utf8mb4 and explicit foreign keys/indexes. API UUIDs are strings. Persist UTC in DATETIME(6), converting aware inputs to UTC before removing timezone metadata for MySQL; attach UTC on read. Date-only values use DATE; local recurring times use TIME plus an IANA timezone.
+This is the full-project implementation target. **Migration 0001_sandip implements the identity/circle/alert foundation subset**, with a database-backed auth rate limiter; `0002_tanjila` adds medicines, interaction_rules, prescriptions, prescription_versions, prescription_items, warning_checks, reference_revision and Patient.allergies; other domain entities remain planned. The migration and ORM code are authoritative for the implemented subset. Tanjila coordinates subsequent revisions. All UUID PK/FK columns use CHAR(36); all entities have `id`, `created_at`, `updated_at` unless noted. Use MySQL 8.4/InnoDB/utf8mb4 and explicit foreign keys/indexes. API UUIDs are strings. Persist UTC in DATETIME(6), converting aware inputs to UTC before removing timezone metadata for MySQL; attach UTC on read. Date-only values use DATE; local recurring times use TIME plus an IANA timezone.
 
-Sprint 1 deliberately stores only identity and consent metadata on patients; birth date, allergies, blood group and clinical details are added with their owning feature migrations. Patients now include `consent_basis`. Basic patient responses expose name/timezone/role/scopes only. Alerts/delivery records are minimal internal records; acknowledgement fields, SMTP leases/retries, SOS and clinical source tables arrive with the owning features. No public alert feed is implemented yet.
+Patients now include reported generic-name allergies through 0002_tanjila; birth date, blood group and other clinical details remain planned. Patients now include `consent_basis`. Basic patient responses expose name/timezone/role/scopes only. Alerts/delivery records are minimal internal records; acknowledgement fields, SMTP leases/retries, SOS and clinical source tables arrive with the owning features. No public alert feed is implemented yet.
 
 `?` means nullable. Quantities use DECIMAL(10,3), not float. DB CHECK constraints and service validation enforce positive quantities, valid statuses and ranges. Status strings use VARCHAR with CHECK, matching shared schemas. Patient-scoped tables contain `patient_id` even when derivable; enforce consistency with composite keys/validation in the same transaction, not browser input.
 
@@ -73,7 +73,7 @@ Snooze is an action, not a terminal dose status. Missed is set by the worker aft
 
 ## Migration and seed policy
 
-One Alembic chain, currently headed by 0001_sandip. Introduce entities incrementally but respect this shared identity and FK plan. Use RESTRICT for clinical-history deletion except CC-20's future explicit reviewed erasure service. Erasure must revoke shares and remove associated private data with tests; it is not implemented in Sprint 1. Never promise erasure with only a soft-delete flag.
+One Alembic chain, currently headed by 0002_tanjila. Introduce entities incrementally but respect this shared identity and FK plan. Use RESTRICT for clinical-history deletion except CC-20's future explicit reviewed erasure service. Erasure must revoke shares and remove associated private data with tests; it is not implemented in Sprint 1. Never promise erasure with only a soft-delete flag.
 
 Use explicitly synthetic patients: one patient owner, primary caregiver, restricted secondary caregiver, unrelated patient's caregiver, and reference-data admin. Seed via an explicit command using developer-provided passwords, not a public hardcoded credential. Add fixed schedule events around a time supplied by the test. Seed reference medicine rows only with recorded provenance and permitted licensing.
 
@@ -94,3 +94,9 @@ erDiagram
  PATIENTS ||--o{ SUMMARY_SNAPSHOTS : summarizes
  SUMMARY_SNAPSHOTS ||--o{ SHARE_LINKS : grants
 ```
+
+## Implemented CC-03/04 additions
+
+`reference_revision` has singleton id=1 and an incrementing revision, locking catalogue changes and warning confirmation. `warning_checks` persists patient/actor, canonical proposed items, warning snapshots, state hash, expiry, acknowledgement time and unique confirmed version ID. Patient.allergies is a JSON list of normalized generic names; an empty list means no recorded entries, not a verified absence of allergies.
+
+Prescription roots currently have patient_id and created_by, without an OCR document relation. Version 1 confirmation and immutable items are implemented; revisions/stop/history are not. Versions carry `schedule_status=not_integrated`. See [Tanjila’s handoff](tanjila-sprint-1.md) for integration obligations. The blueprint tables above include future fields; current migrations/models define what is available.

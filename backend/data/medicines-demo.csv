@@ -1,0 +1,5 @@
+generic_name,brand_name,strength,form,source_name,source_license
+Demo compound alpha,Demo Alpha,10mg,tablet,CareCircle fictional teaching dataset,Original synthetic demonstration data - no external clinical source
+Demo compound alpha,Demo Alpha Alternate,20mg,tablet,CareCircle fictional teaching dataset,Original synthetic demonstration data - no external clinical source
+Demo compound beta,Demo Beta,5mg,capsule,CareCircle fictional teaching dataset,Original synthetic demonstration data - no external clinical source
+Demo compound gamma,Demo Gamma,5mg/5ml,liquid,CareCircle fictional teaching dataset,Original synthetic demonstration data - no external clinical source

@@ -6,12 +6,14 @@ from starlette.exceptions import HTTPException
 from app.controllers.health import router
 from app.controllers.auth import router as auth_router
 from app.controllers.circle import router as circle_router
+from app.controllers.medicines import router as medicine_router
 
 app = FastAPI(title="CareCircle API", version="0.1.0", docs_url="/api/docs",
               redoc_url=None, openapi_url="/api/openapi.json")
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(circle_router)
+app.include_router(medicine_router)
 
 
 @app.middleware('http')

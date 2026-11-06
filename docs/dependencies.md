@@ -15,3 +15,7 @@ Added for Sandip Sprint 1: SQLAlchemy 2 (ORM, MIT), PyMySQL with RSA/cryptograph
 Deferred: APScheduler 3 (Tasin); pytesseract/Pillow and separately installed Tesseract 5 (Tanjila); scikit-learn/Recharts/ReportLab (Saif). Record exact versions/licenses when introduced. A local MySQL Community 8.4.13 Windows ZIP from the official MySQL CDN was used for tests; the binaries/data are outside this source folder and are not redistributed.
 
 No medicine/interaction dataset is bundled. Do not invent licenses or citations. Choose a small curated legally usable set, record provenance and date, and label incomplete coverage. Synthetic adherence/vitals data must be labeled and generated reproducibly; no real patient data should be committed.
+
+## Tanjila Sprint 1
+
+No packages or dependency versions added/changed. CSV parsing, Unicode normalization, hashing and fuzzy sequence ranking use the Python standard library. The bundled medicine CSV is original fictional teaching data with per-row source/provenance; it is not a medical reference source. Interaction examples are entered explicitly as fictional rules.

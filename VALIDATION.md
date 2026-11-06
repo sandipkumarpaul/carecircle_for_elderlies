@@ -1,24 +1,26 @@
-# Validation performed — 2026-11-04
+# Local validation — combined Sprint 1, 5 November 2026
 
-Environment: Windows, Python 3.12.14, Node 24.22.1, isolated MySQL Community 8.4.13, installed Microsoft Edge for browser tests. Synthetic accounts only; no XAMPP database changes.
+Environment: Windows, Python 3.12.14, Node 24.15.0, MySQL Community 8.4.13 and Microsoft Edge. Tests use synthetic accounts and the separate guarded `carecircle_test` database. Development data was not reset.
 
 | Check | Result |
 |---|---|
-| Python dependency resolution/install in isolated local environment | Passed; exact installed versions saved in backend/requirements.lock.txt |
-| `python -m pytest -q -x --tb=short` from backend | **36 passed**; 18 contract/HTTP tests and 18 real MySQL scenarios covering authentication, consent, role/scopes, expiry/revocation, isolation, concurrency, cross-session CSRF, disabled accounts, privilege injection and transaction rollback |
-| `npm run build` from frontend | **Passed**; TypeScript check and Vite production build |
-| `alembic upgrade head` and `alembic check` | Passed on development MySQL; no model/schema differences. Tests also migrate an initially empty dedicated MySQL test database |
-| `npx playwright test` with E2E_BROWSER=msedge | **2 passed**: full browser registration/profile/invite/accept/edit/revoke/logout workflow, plus desktop/mobile login layout |
-| Screenshot inspection | Reviewed patient circle, caregiver mobile, desktop login and mobile login; no horizontal overflow at 390px in browser checks |
-| `scripts/start-local.ps1` | Passed using installed Node 24.15.0; migrations applied and development API/frontend started. The earlier build/browser runs used bundled Node 24.22.1 |
-| `python scripts/check_foundation.py` | Passed; local Markdown links and all 20 unique feature-owner assignments |
+| Backend `python -m pytest -q` | **46 passed**: all 36 Sandip baseline tests plus 10 Tanjila MySQL cases (including parametrized stale-state cases) |
+| Frontend `npm run build` | **Passed**: TypeScript and Vite production build |
+| Browser `npx playwright test` with E2E_BROWSER=msedge | **3 passed**: existing circle lifecycle, login layout, and medicine import/allergy acknowledgement/persistence workflow |
+| Mobile browser checks | No horizontal overflow at 390px; warning-review screenshot visually inspected |
+| Upgrade from 0001_sandip to 0002_tanjila | Passed with synthetic existing patients; identity rows preserved and allergies backfilled |
+| Fresh MySQL schema upgrade | Passed through both revisions; `alembic check` reports no model/schema differences |
+| `alembic heads` | Single head: 0002_tanjila |
+| `python scripts/check_foundation.py` | Passed: documentation links and 20 unique feature assignments |
 
-Known warning: the installed Starlette TestClient emits a deprecation warning for httpx and suggests httpx2. Tests pass; this is recorded, not silently hidden. Revisit in a dependency-maintenance PR with compatibility checks.
+New backend coverage includes atomic CSV row rejection, deduplication, fuzzy and exact-generic lookup, filters/pagination bounds, admin authorization, CSRF, unauthenticated and cross-patient access, read-only/revoked caregivers, interaction/allergy/duplicate warnings, acknowledgement persistence, stale/expired reviews, unknown medicines/invalid doses and concurrent retry producing one version.
 
-The first restricted API-test run stalled when Windows could not create a local event-loop socket; rerunning with local socket access passed. That was a test-environment issue, not evidence of working application features.
+The migration was exercised locally against both populated predecessor and empty test schemas. Its downgrade drops the added clinical/reference tables and allergy column, destroying their data; use only with a backup and deliberate rollback decision. The original 0001_sandip migration was preserved. No production database or deployment was tested.
 
-Not implemented/tested: assessed CC-02–CC-20 workflows, scheduler, email delivery/verification, password recovery, OCR, risk evaluation or production deployment. Migration downgrade is destructive and has not been run on development data. Hosted Linux CI has not run yet; no claim is made that local tests establish production security or medical suitability.
+Two issues found during verification were corrected: the new migration's generated downgrade attempted to drop foreign-key-supporting indexes before their tables (MySQL rejects that), and the browser test initially expected trailing decimal zeroes instead of checking the numeric quantity. Fresh/upgrade/schema checks and the final browser run passed after correction. The API now explicitly serializes quantities as decimal strings.
 
-The first browser attempt failed on an exact label selector (required-field label markup); corrected accessible-role selectors passed. A resumed test attempt found the local MySQL process stopped; restarting it yielded the passing database run. Neither failure was hidden as feature completion.
+Known existing advisories: Starlette TestClient emits an httpx deprecation warning; Vite reports the main JavaScript bundle above 500 kB (about 518 kB uncompressed). Neither fails the checks. No dependency upgrades were made to hide these warnings.
 
-The frontend currently emits a bundle-size advisory around 500 kB; code splitting can be introduced as future views are added. This is not a build failure. Dependencies/config/database files are local and ignored. The GitHub handoff folder contains the same application and test source; its documentation and packaging were reorganized on 5 November 2026.
+The local sources were based on GitHub main `91b54a2ba4a840fbf7d8be583e89d19ac968b2b6`, fetched on 5 November. These results do not claim hosted CI has run for this combined update. After manual upload, check the repository's Actions run.
+
+Not implemented: real clinical reference coverage, prescription OCR/revisions/stopping, schedule regeneration/dose reminders, SMTP, remaining assessed features, or production deployment. The medicine demonstration data/rule are fictional. Student review and individual viva preparation remain necessary.

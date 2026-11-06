@@ -63,6 +63,7 @@ class Patient(Entity, Base):
     consent_recorded_at: Mapped[datetime] = mapped_column(UTCDateTime())
     consent_recorded_by: Mapped[str] = mapped_column(ForeignKey('users.id'))
     consent_basis: Mapped[str] = mapped_column(String(300))
+    allergies: Mapped[list] = mapped_column(JSON, default=list)
 
 
 class Membership(Entity, Base):

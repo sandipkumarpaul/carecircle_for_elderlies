@@ -42,7 +42,7 @@ Trace one invite from the button through the shared API client, authentication d
 
 ## Handoff to teammates
 
-- Tanjila: extend `0001_sandip` with the next migration; reuse User/Patient and the existing DB/session dependency. Add needed clinical patient fields with explicit scopes. CC-03/04 are still yours to implement.
+- Tanjila: CC-03/04 now extend this baseline through `0002_tanjila`; see [Tanjila's handoff](tanjila-sprint-1.md). Continue reusing User/Patient and the existing DB/session dependency for later features.
 - Tasin: notification deliveries currently hold minimal in-app pending records. Extend with retries/leases/channels, not a duplicate table. Implement schedule/adherence services and call permission checks and `delivery_allowed`.
 - Saif: use the existing API client, signed-in session and patient scopes. Vitals must call `require(..., Scope.VITALS_READ/WRITE)` and validate source ownership before raising alerts.
 - Every service must participate in the caller's transaction. Do not commit inside shared permission/circle/alert methods.

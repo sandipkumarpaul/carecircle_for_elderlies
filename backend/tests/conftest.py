@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.main import app
 from app.models import Base
+from app.models.medicines import ReferenceRevision
 
 
 @pytest.fixture(scope='session')
@@ -51,6 +52,7 @@ def db_engine(mysql_database):
     with Session(mysql_database) as session, session.begin():
         for table in reversed(Base.metadata.sorted_tables):
             session.execute(delete(table))
+        session.add(ReferenceRevision(id=1, revision=0))
     return mysql_database
 
 

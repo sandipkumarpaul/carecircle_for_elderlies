@@ -61,4 +61,4 @@ Patient-first readable pages, clear status text, labeled controls, keyboard focu
 - FastAPI modular routers: https://fastapi.tiangolo.com/tutorial/bigger-applications/
 - SQLAlchemy session/transaction ownership: https://docs.sqlalchemy.org/en/20/orm/session_basics.html
 - Vite setup: https://vite.dev/guide/
-- Source decisions: supplied Claude history, project ideas PDF, named roadmap, group spreadsheet, and revised course outline. Private source documents are intentionally not copied into this repository.
+- Source decisions: supplied project planning documents, project ideas PDF, team roadmap, group spreadsheet, and revised course outline. Private source documents are intentionally not copied into this repository.

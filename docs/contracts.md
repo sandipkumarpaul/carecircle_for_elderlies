@@ -1,6 +1,6 @@
 # Shared interfaces and API rules — v1
 
-**Implementation status:** health, auth (csrf/register/login/logout/me), patient create/list/detail, care-circle read, invite create/revoke/preview/accept, and member access edit/revoke are implemented. Open `/api/docs` for the actual route/request definitions. Other routes below remain design targets. Shared types live in `backend/app/schemas/contracts.py`; identity requests in `schemas/identity.py`; concrete permission/alert services in `services/access.py` and `services/alerts.py`.
+**Implementation status:** health, auth (csrf/register/login/logout/me), patient create/list/detail, care-circle read, invite create/revoke/preview/accept, and member access edit/revoke are implemented. Open `/api/docs` for the actual route/request definitions. CC-03/04 routes listed in the implemented medicine section below also exist; other routes remain design targets. Shared types live in `backend/app/schemas/contracts.py`; identity requests in `schemas/identity.py`; concrete permission/alert services in `services/access.py` and `services/alerts.py`.
 
 Invite preview/accept use `POST /api/v1/circle/invites/{preview,accept}` with a token in the JSON body. The copyable link holds it in a URL fragment so it is not sent in access logs. Creation returns the private link once; raw tokens are not persisted. The invitee must sign into the matching email and explicitly accept. No invitation email transport or email verification is claimed: the inviter manually shares the secret link with the intended person.
 
@@ -79,3 +79,25 @@ Alert authorization requires both `alerts:read` and the source domain's read sco
 ## Uploads and sharing
 
 Prescription upload: JPEG/PNG only in v1, <=10 MiB and <=20 megapixels; inspect decoded content, reject unsupported formats and decompression bombs; sanitize names and store generated keys privately. OCR has bounded execution time, returns draft suggestions/confidence, and cannot confirm prescriptions automatically. No external OCR upload service. Summary shares use >=256-bit cryptographically random tokens, stored hashed, default 24-hour expiry, revocable; check expiry/revocation on every access. Serve prepared minimal summary only with Cache-Control: no-store and audit access; no token in analytics/logs.
+
+## Implemented medicine API — Sprint 1
+
+All require a verified session; writes also require CSRF/origin checks. Reference administration never grants patient access.
+
+| Route | Behavior |
+|---|---|
+| GET /medicines | q fuzzy/substring search; generic exact normalized filter; strength/form, offset/limit; standard page envelope |
+| POST /medicines/import | Admin only; JSON csv_text (UTF-8 text read from a selected file); imported/duplicates/errors result; any row error prevents all writes |
+| GET /medicines/interaction-rules | Authenticated reference rules |
+| POST /medicines/interaction-rules | Admin creates/updates an ordered medicine pair with severity/explanation/source |
+| GET /patients/{id}/allergies | medicines:read; reported generic_names |
+| PUT /patients/{id}/allergies | medicines:write; replace normalized generic_names; empty list clears |
+| GET /patients/{id}/prescriptions | medicines:read; items envelope of unexpired confirmed items, including future start dates |
+| POST /patients/{id}/interaction-check | medicines:write; items use canonical PrescriptionItemInput; returns check_id, warnings, expiry and coverage statement |
+| POST /patients/{id}/prescriptions/confirm | medicines:write; check_id and acknowledged_warning_ids; returns version_id and schedule_status=not_integrated |
+
+The last confirm route is the minimum initial-record workflow for CC-04, not the planned version revision endpoint for CC-05. Checks are actor/patient-bound, expire in 15 minutes and reject changed reference/patient state. Confirmation retry with the same valid check returns the same version; the check ID supplies operation identity instead of a separate Idempotency-Key. Errors are 409 for stale/expired or missing acknowledgement, 404 for another patient's/actor's check, and 422 for invalid doses/unknown medicines. All warnings must be reviewed; acknowledgement is not clinical approval.
+
+Reference-rule and active-prescription reads currently use small complete items collections (not the paginated envelope); medicine search remains paginated. This explicit Sprint 1 exception should be revisited when adding history or large datasets. Reference rules are educational and limited; allergy matching is exact generic only. Synthetic fixtures contain no actual medical interaction assertions.
+
+The prescribed schedule regeneration contract above is still the integration target. Until the real service is connected in the confirmation transaction, the application explicitly stores not_integrated and generates no dose events. See [integration handoff](tanjila-sprint-1.md).

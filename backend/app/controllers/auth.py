@@ -19,7 +19,7 @@ router = APIRouter(prefix='/api/v1/auth', tags=['authentication'])
 
 
 def user_view(user):
-    return dict(id=user.id, display_name=user.display_name, email=user.email_normalized)
+    return dict(id=user.id, display_name=user.display_name, email=user.email_normalized, is_admin=user.is_admin)
 
 
 def limit(request, email):

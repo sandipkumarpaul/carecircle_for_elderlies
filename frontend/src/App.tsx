@@ -6,6 +6,7 @@ import { AuthView } from './views/auth/AuthView';
 import { PatientForm } from './views/circle/PatientForm';
 import { AcceptInvite } from './views/circle/AcceptInvite';
 import { CircleView } from './views/circle/CircleView';
+import { MedicineView } from './views/medicines/MedicineView';
 const initialInvite = new URLSearchParams(location.hash.slice(1)).get('invite') ?? '';
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
       {page.total > 20 && <Stack direction="row" spacing={2}><Button disabled={!page.offset} onClick={() => loadPatients(page.offset - 20)}>Previous</Button><Typography>{page.offset + 1}–{Math.min(page.offset + 20, page.total)} of {page.total}</Typography><Button disabled={page.offset + 20 >= page.total} onClick={() => loadPatients(page.offset + 20)}>Next</Button></Stack>}
       <AcceptInvite initialToken={initialInvite} onAccepted={p => { setNotice(`You joined ${p.display_name}’s care circle.`); void loadPatients(0, p.id); }} />
     </Stack>}
-    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Sprint 1 · Care-circle access is available. Medicine, dose, and health-monitoring features will follow.</Typography>
+    {user && <Box sx={{ mt: 4 }}><MedicineView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} user={user} patient={selected} /></Box>}
+    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Sprint 1 · Care circles, medicine reference and warning review. Dose scheduling and health monitoring will follow.</Typography>
   </Container>{createOpen && <PatientForm onClose={() => setCreateOpen(false)} onCreated={p => { setCreateOpen(false); setNotice('Patient profile created with consent.'); void loadPatients(0, p.id); }} />}</>;
 }

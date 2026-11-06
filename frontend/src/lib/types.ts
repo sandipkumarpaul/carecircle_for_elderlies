@@ -1,4 +1,4 @@
-export type User = { id: string; display_name: string; email: string };
+export type User = { id: string; display_name: string; email: string; is_admin: boolean };
 export type Patient = { id: string; display_name: string; timezone: string; role: 'patient' | 'primary' | 'secondary'; scopes: string[]; can_manage: boolean };
 export type Grant = { role: 'primary' | 'secondary'; scopes: string[] };
 export type Member = Grant & { id: string; user_id: string; display_name: string; email: string; revoked_at: string | null; accepted_at: string };

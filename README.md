@@ -6,7 +6,7 @@ A web application for coordinating medication adherence and family caregiving.
 
 ## Current implementation
 
-Sandip's Sprint 1 delivers **CC-01: Care circle and consent access**, with supporting authentication and database infrastructure. Authentication is not counted as an assessed feature.
+The combined Sprint 1 delivers Sandip's **CC-01: Care circle and consent access** and Tanjila's **CC-03: Medicine reference** and **CC-04: Interaction warnings**, with supporting authentication and database infrastructure. Authentication is not counted as an assessed feature.
 
 | Area | Implemented behavior |
 |---|---|
@@ -15,20 +15,22 @@ Sandip's Sprint 1 delivers **CC-01: Care circle and consent access**, with suppo
 | Patients | Personal and dependent profiles with explicit consent/authority records |
 | Care circles | Expiring single-use invitations, matching-account acceptance, primary/secondary roles, selected permissions, access changes and revocation |
 | Shared infrastructure | Patient-scoped permission service, audit records, deduplicated internal alerts and recipient/delivery records |
-| Persistence | MySQL models and initial Alembic migration `0001_sandip` |
+| Medicine reference | Admin CSV validation/import, deduplication, fuzzy search, strength/form filters and exact-generic alternatives |
+| Warning review | Curated interactions, generic duplicates and reported allergies; persisted acknowledgement, stale-review rejection and immutable medicine records |
+| Persistence | MySQL models and additive Alembic chain `0001_sandip` → `0002_tanjila` |
 | Interface | Responsive account, patient-profile and caregiver-access screens |
 
-Invitations use a private link copied and shared manually. SMTP delivery, email verification/password recovery, clinical workflows CC-02–CC-20, scheduling, OCR and risk prediction are **not implemented**. Internal alert persistence is not a completed alert-center feature. See [implementation status](docs/status.md) and [validation evidence](VALIDATION.md).
+Invitations use a private link copied and shared manually. SMTP delivery, email verification/password recovery, the remaining clinical workflows, dose scheduling, OCR and risk prediction are **not implemented**. The supplied medicine data is fictional teaching data; checks do not establish clinical safety. Saved medicine records explicitly show scheduling as not integrated. Internal alert persistence is not a completed alert-center feature. See [implementation status](docs/status.md) and [validation evidence](VALIDATION.md).
 
 ## Start here after cloning
 
 1. Follow the setup below and run the existing application before changing it.
-2. Read [Sandip's implementation and handoff](docs/sandip-sprint-1.md) for request flows, limits and the demonstration procedure.
+2. Read [Tanjila's implementation and demonstration](docs/tanjila-sprint-1.md) and [Sandip's implementation and handoff](docs/sandip-sprint-1.md) for request flows, limits and the demonstration procedure.
 3. Find your ownership and next tasks in [team responsibilities](docs/team.md) and [sprint plan](docs/sprints.md).
 4. Read [architecture](docs/architecture.md), [database design](docs/data-model.md) and [shared contracts](docs/contracts.md).
 5. Follow [CONTRIBUTING.md](CONTRIBUTING.md), including migration coordination and required checks.
 
-Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0001_sandip`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
+Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0002_tanjila`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
 
 ## Technology stack
 
@@ -117,10 +119,14 @@ npx playwright install chromium
 npx playwright test
 ```
 
-Alternatively, on Windows with Edge installed, set `$env:E2E_BROWSER='msedge'` and run `npx playwright test`. Browser tests start temporary servers against the test database. Do not run browser and backend database tests simultaneously. Local evidence: **36 backend tests passed, 2 browser tests passed, frontend build passed** on 4 November 2026. Details and limitations are in [VALIDATION.md](VALIDATION.md); the hosted CI run must be checked after pushing.
+Alternatively, on Windows with Edge installed, set `$env:E2E_BROWSER='msedge'` and run `npx playwright test`. Browser tests start temporary servers against the test database. Do not run browser and backend database tests simultaneously. Local evidence: **46 backend tests passed, 3 browser tests passed, frontend build passed** on 5 November 2026. Details and limitations are in [VALIDATION.md](VALIDATION.md); the hosted CI run must be checked after pushing.
 
 ## Team and delivery
 
 Sprint 1 is due **8 November 2026**, with five assessed features across the team: Sandip CC-01; Tanjila CC-03/04; Tasin CC-06; Saif CC-12. Later deadlines and all twenty feature assignments are documented in [the sprint plan](docs/sprints.md) and [acceptance criteria](docs/features.md).
 
 Significant packages and data sources must be recorded in [dependencies](docs/dependencies.md). Each member remains responsible for reviewing, testing and understanding their contribution.
+
+## Medicine demonstration setup
+
+Use the normal account registration flow, then grant reference administration through the local operator command described in [Tanjila’s handoff](docs/tanjila-sprint-1.md). Import `backend/data/medicines-demo.csv` through the UI and add the documented fictional interaction rule. There are no seeded credentials, automatic clinical approvals, OCR or dose reminders. All patient workflows reuse the existing medicine read/write scopes.
