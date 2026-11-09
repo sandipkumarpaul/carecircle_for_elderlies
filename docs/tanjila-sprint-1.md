@@ -32,14 +32,8 @@ The server stores the proposed items and warning snapshots in `warning_checks`, 
 
 A singleton `reference_revision` row serializes reference updates and warning checks/confirmation. Patient-row locking serializes patient changes and confirms against current permissions. Lock order is reference first, then patient. Each controller commits once; errors roll back. Acknowledgement time and actor are persisted with warning provenance; audit events contain identifiers/actions, not raw clinical content.
 
-## Tasin's integration boundary
+## Integrated dose scheduling (9 November 2026)
 
-The minimum CC-04 confirmation creates a new `prescriptions` root, immutable version 1 and canonical `prescription_items`. Existing records are not revised or stopped. `schedule_status=not_integrated` is returned and displayed; **no dose events, reminders or fake successful regeneration calls are produced**.
+Initial CC-04 confirmation calls the real ScheduleService.regenerate after flushing the version and items, inside the same transaction. Failures roll back both medicine and dose records. Successful confirmations return schedule_status=generated; retries return the original version and its stored status. Upcoming doses appear under Recorded medicines.
 
-Before demonstrating prescription-to-dose integration, connect the real `ScheduleService.regenerate` in this same transaction, passing the new prescription/version IDs, patient and aware effective timestamp through `RegenerateScheduleCommand`. Failure must roll back confirmation. Coordinate the schedule-status transition and treatment of existing `not_integrated` records explicitly; do not silently replay them with a retroactive cutoff. Tests must prove rollback and exactly-once database effects. CC-05's version supersession/stop/notification workflow remains Sprint 2.
-
-## Data provenance and limits
-
-The four supplied medicines are fictional, original demonstration records with explicit provenance in each CSV row. They do not represent clinical reference data. Importing real medicine/rule data requires verified source accuracy and permission to use that source. No external medical service is called. No package versions were changed or dependencies added.
-
-See root VALIDATION.md for executed checks. Student review and ability to explain and modify this request flow remain necessary for the individual viva.
+Existing pre-integration records remain valid. Refresh dose schedule generates only future doses and extends the rolling horizon; it does not change the original confirmation date or replay elapsed doses. Read-only caregivers can view doses but cannot refresh them. CC-05 revision/stop/history remains future work. See [Tasin’s guide](tasin-sprint-1.md).

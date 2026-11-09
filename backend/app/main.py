@@ -8,6 +8,8 @@ from app.controllers.auth import router as auth_router
 from app.controllers.circle import router as circle_router
 from app.controllers.medicines import router as medicine_router
 from app.controllers.vitals import router as vitals_router
+from app.controllers.doses import router as doses_router
+from app.controllers.alerts import router as alerts_router
 
 app = FastAPI(title="CareCircle API", version="0.1.0", docs_url="/api/docs",
               redoc_url=None, openapi_url="/api/openapi.json")
@@ -16,6 +18,8 @@ app.include_router(auth_router)
 app.include_router(circle_router)
 app.include_router(medicine_router)
 app.include_router(vitals_router)
+app.include_router(doses_router)
+app.include_router(alerts_router)
 
 
 @app.middleware('http')

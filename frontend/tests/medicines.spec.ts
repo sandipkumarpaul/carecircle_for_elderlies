@@ -39,7 +39,13 @@ test('catalogue import, allergy acknowledgement and saved medicine persist', asy
   await page.screenshot({ path: testInfo.outputPath('warning-mobile.png') });
   await page.getByRole('checkbox', { name: 'I have reviewed this allergy warning' }).check();
   await page.getByRole('button', { name: 'Confirm medicine record' }).click();
-  await expect(page.getByText('Medicine record saved. Dose scheduling is not integrated yet.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Medicine record saved and dose schedule generated.', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('scheduled-dose').first()).toBeVisible();
+  const doseCount = await page.getByTestId('scheduled-dose').count();
+  await page.getByRole('button', { name: 'Refresh dose schedule', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Refresh dose schedule', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('scheduled-dose')).toHaveCount(doseCount);
   await page.reload();
+  await expect(page.getByTestId('scheduled-dose')).toHaveCount(doseCount);
   await expect(page.getByText(/^Demo Alpha · 1(?:\.0+)? tablet$/)).toBeVisible();
 });

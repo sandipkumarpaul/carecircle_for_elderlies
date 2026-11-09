@@ -8,6 +8,7 @@ import { AcceptInvite } from './views/circle/AcceptInvite';
 import { CircleView } from './views/circle/CircleView';
 import { MedicineView } from './views/medicines/MedicineView';
 import { VitalsView } from './views/vitals/VitalsView';
+import { AlertCenter } from './views/alerts/AlertCenter';
 const initialInvite = new URLSearchParams(location.hash.slice(1)).get('invite') ?? '';
 
 export default function App() {
@@ -48,7 +49,8 @@ export default function App() {
       <AcceptInvite initialToken={initialInvite} onAccepted={p => { setNotice(`You joined ${p.display_name}’s care circle.`); void loadPatients(0, p.id); }} />
     </Stack>}
     {user && <Box sx={{ mt: 4 }}><MedicineView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} user={user} patient={selected} /></Box>}
-    {user && <Box sx={{ mt: 4 }}><VitalsView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
-    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Sprint 1 · Care circles, medicine reference and warning review. Dose scheduling and health monitoring will follow.</Typography>
+    {user && <Box sx={{ mt: 4 }}><AlertCenter key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
+    {user && <Box id="vitals-panel" sx={{ mt: 4 }}><VitalsView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
+    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Team Sprint 1 + Sandip Sprint 2 · Care circles, medicines, doses, vitals and health alerts.</Typography>
   </Container>{createOpen && <PatientForm onClose={() => setCreateOpen(false)} onCreated={p => { setCreateOpen(false); setNotice('Patient profile created with consent.'); void loadPatients(0, p.id); }} />}</>;
 }

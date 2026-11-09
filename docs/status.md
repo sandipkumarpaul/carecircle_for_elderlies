@@ -1,17 +1,19 @@
 # Current implementation status
 
-Combined Sandip and Tanjila Sprint 1, 5 November 2026. See root VALIDATION.md for local evidence. Hosted checks for this combined update must be verified after upload; no remote upload was performed during preparation.
+Whole-team Sprint 1 plus Sandip Sprint 2, 9 November 2026. See [validation](../VALIDATION.md) for local checks. This prepared folder has not been pushed to GitHub.
 
-| Area | Status |
+| Feature | Status |
 |---|---|
-| Authentication and CC-01 | Implemented; existing registration/circle browser and backend tests remain passing |
-| CC-03 | Implemented: admin CSV validation/import, deduplication, fuzzy search, filters and generic alternatives |
-| CC-04 | Implemented for a limited curated reference set: interaction/duplicate/reported-allergy warnings, recorded acknowledgement and persisted medicine records |
-| Reference data | Four fictional teaching medicines supplied; interaction demonstration is explicitly synthetic; not a clinical dataset |
-| Schema | Single Alembic head 0002_tanjila; additive extension of 0001_sandip |
-| Prescription-to-dose integration | Not integrated: confirmed medicine records persist with schedule_status=not_integrated; Tasin must connect real transactional regeneration |
-| Shared permission and alert services | Implemented; alerts are internal persistence, no public feed or delivery worker |
-| CC-02, CC-05–CC-20 | Not implemented in this handoff; feature ownership unchanged |
-| SRS and course tracker | External documents unchanged; team must record actual contribution/review evidence |
+| Sandip CC-01 | Care circles, consent, invitations, access changes and revocation; supporting authentication |
+| Tanjila CC-03 | Medicine reference import, search, filters and generic alternatives |
+| Tanjila CC-04 | Interaction/duplicate/reported-allergy warning review and immutable initial medicine confirmation |
+| Tasin CC-06 | Transactional dose generation, UTC/local-time handling, rolling horizon refresh, permitted upcoming-dose view |
+| Saif CC-12 | Vitals logging, thresholds and deterministic trend alerts |
+| Sandip CC-18 | Scoped alert feed, read/acknowledge/resolve, pending-delivery cancellation, personal quiet-hour preferences and delivery gate |
+| Schema | One additive chain ending at 0005_sandip |
+| Existing medicine records | Preserved; manual or daily refresh generates future doses without replaying elapsed times |
+| Remaining 14 features | Later increments; reminders, adherence actions, OCR and full prescription revisions are not claimed complete |
 
-Sprint 1 requires five features team-wide by 8 November: Sandip CC-01, Tanjila CC-03/04, Tasin CC-06, Saif CC-12. This folder contains the first three, with authentication as supporting work. Tasin and Saif still need to implement and integrate their assigned features. Individual review, viva understanding and course submission remain the team's responsibility.
+Daily extension requires an operator to schedule `python -m app.refresh_schedules`; the UI also supports manual refresh. No reminder delivery or automatic scheduler installation is included. Medicine fixtures are fictional teaching data. Course records, SRS and individual contribution confirmation remain the team's responsibility.
+
+See [Sandip Sprint 2](sandip-sprint-2.md). Quiet hours defer future noncritical email delivery, but this increment does not implement SMTP or escalation workers.

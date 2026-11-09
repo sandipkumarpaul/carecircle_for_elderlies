@@ -83,7 +83,7 @@ def test_interaction_allergy_duplicate_ack_and_idempotent_confirmation(catalogue
     assert all(w['source'] and w['severity'] for w in review['warnings'])
     assert confirm(c,p,review,False).status_code == 409
     result = confirm(c,p,review)
-    assert result.status_code == 200 and result.json()['schedule_status'] == 'not_integrated'
+    assert result.status_code == 200 and result.json()['schedule_status'] == 'generated'
     assert confirm(c,p,review).json() == result.json()
     with Session(db_engine) as db:
         assert db.get(WarningCheck,review['check_id']).acknowledged_at is not None

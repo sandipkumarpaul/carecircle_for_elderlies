@@ -6,31 +6,26 @@ A web application for coordinating medication adherence and family caregiving.
 
 ## Current implementation
 
-The combined Sprint 1 delivers Sandip's **CC-01: Care circle and consent access** and Tanjila's **CC-03: Medicine reference** and **CC-04: Interaction warnings**, with supporting authentication and database infrastructure. Authentication is not counted as an assessed feature.
+This folder adds **Sandip Sprint 2 — CC-18 Health alert centre** to the verified whole-team Sprint 1. See [Sandip Sprint 2 guide](docs/sandip-sprint-2.md) for the demonstration, permissions and delivery boundaries. The alert centre supports scoped feeds, severity/time ordering, read/acknowledge/resolve, pending-delivery cancellation and personal email quiet hours. Email delivery itself remains future work.
 
-| Area | Implemented behavior |
-|---|---|
-| Accounts | Registration, login/logout, Argon2 password hashing, normalized unique email |
-| Sessions | Eight-hour JWT sessions in HttpOnly cookies, database revocation, CSRF/origin checks, authentication rate limits |
-| Patients | Personal and dependent profiles with explicit consent/authority records |
-| Care circles | Expiring single-use invitations, matching-account acceptance, primary/secondary roles, selected permissions, access changes and revocation |
-| Shared infrastructure | Patient-scoped permission service, audit records, deduplicated internal alerts and recipient/delivery records |
-| Medicine reference | Admin CSV validation/import, deduplication, fuzzy search, strength/form filters and exact-generic alternatives |
-| Warning review | Curated interactions, generic duplicates and reported allergies; persisted acknowledgement, stale-review rejection and immutable medicine records |
-| Persistence | MySQL models and additive Alembic chain `0001_sandip` → `0002_tanjila` |
-| Interface | Responsive account, patient-profile and caregiver-access screens |
 
-Invitations use a private link copied and shared manually. SMTP delivery, email verification/password recovery, the remaining clinical workflows, dose scheduling, OCR and risk prediction are **not implemented**. The supplied medicine data is fictional teaching data; checks do not establish clinical safety. Saved medicine records explicitly show scheduling as not integrated. Internal alert persistence is not a completed alert-center feature. See [implementation status](docs/status.md) and [validation evidence](VALIDATION.md).
+Whole-team Sprint 1 includes Sandip **CC-01 care circles and consent**, Tanjila **CC-03 medicine reference / CC-04 interaction warnings**, Tasin **CC-06 dose schedules**, and Saif **CC-12 vitals logging and trend alerts**. Login/logout supports these five features and is not counted separately.
+
+Caregiver permissions, warning acknowledgement and patient isolation remain enforced. Confirming a medicine record now creates its future dose events in the same transaction. The Upcoming doses view shows quantities and local times; Manage medicines permits horizon refresh. As-needed medicines have no automatic events. Vitals include per-patient thresholds and deterministic trend alerts.
+
+Migrations form one additive chain: `0001_sandip` → `0002_tanjila` → `0003_saif` → `0004_tasin` → `0005_sandip`. Existing medicine records are preserved; use **Refresh dose schedule** to generate their future doses without replaying past ones.
+
+The medicine data is fictional teaching data. Reminder delivery, adherence confirmation, OCR, prescription revisions/stopping, risk prediction and production deployment remain outside this increment. See [current status](docs/status.md), [dose scheduling guide](docs/tasin-sprint-1.md) and [validation](VALIDATION.md).
 
 ## Start here after cloning
 
 1. Follow the setup below and run the existing application before changing it.
-2. Read [Tanjila's implementation and demonstration](docs/tanjila-sprint-1.md) and [Sandip's implementation and handoff](docs/sandip-sprint-1.md) for request flows, limits and the demonstration procedure.
+2. Read [Tasin's scheduling guide](docs/tasin-sprint-1.md), [Saif's vitals guide](docs/saif-sprint-1.md), [Tanjila's implementation and demonstration](docs/tanjila-sprint-1.md) and [Sandip's implementation and handoff](docs/sandip-sprint-1.md) for request flows, limits and the demonstration procedure.
 3. Find your ownership and next tasks in [team responsibilities](docs/team.md) and [sprint plan](docs/sprints.md).
 4. Read [architecture](docs/architecture.md), [database design](docs/data-model.md) and [shared contracts](docs/contracts.md).
 5. Follow [CONTRIBUTING.md](CONTRIBUTING.md), including migration coordination and required checks.
 
-Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0002_tanjila`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
+Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0005_sandip`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
 
 ## Technology stack
 
@@ -119,7 +114,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-Alternatively, on Windows with Edge installed, set `$env:E2E_BROWSER='msedge'` and run `npx playwright test`. Browser tests start temporary servers against the test database. Do not run browser and backend database tests simultaneously. Local evidence: **46 backend tests passed, 3 browser tests passed, frontend build passed** on 5 November 2026. Details and limitations are in [VALIDATION.md](VALIDATION.md); the hosted CI run must be checked after pushing.
+Alternatively, on Windows with Edge installed, set `$env:E2E_BROWSER='msedge'` and run `npx playwright test`. Browser tests start temporary servers against the test database. Do not run browser and backend database tests simultaneously. Latest combined validation is recorded in VALIDATION.md. Details and limitations are in [VALIDATION.md](VALIDATION.md); the hosted CI run must be checked after pushing.
 
 ## Team and delivery
 
@@ -130,3 +125,7 @@ Significant packages and data sources must be recorded in [dependencies](docs/de
 ## Medicine demonstration setup
 
 Use the normal account registration flow, then grant reference administration through the local operator command described in [Tanjila’s handoff](docs/tanjila-sprint-1.md). Import `backend/data/medicines-demo.csv` through the UI and add the documented fictional interaction rule. There are no seeded credentials, automatic clinical approvals, OCR or dose reminders. All patient workflows reuse the existing medicine read/write scopes.
+
+## Daily schedule extension
+
+Run `python -m app.refresh_schedules` from `backend` with the configured Python environment, or schedule this command daily in your operating system. It extends each confirmed record through today plus 13 days. No background scheduler is installed automatically. The UI Refresh dose schedule button also extends the selected patient’s horizon. No reminder messages are sent.

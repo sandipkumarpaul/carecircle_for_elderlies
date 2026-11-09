@@ -14,7 +14,8 @@ from app.models import AuditEvent
 from app.models.medicines import (Medicine, InteractionRule, Prescription, PrescriptionVersion,
                                   PrescriptionItem, WarningCheck, ReferenceRevision)
 from app.schemas.medicines import MedicineInput, normalized
-from app.schemas.contracts import PrescriptionItemInput
+from app.schemas.contracts import PrescriptionItemInput, RegenerateScheduleCommand
+from app.services.schedules import ScheduleService
 
 
 def digest(value):
@@ -158,7 +159,8 @@ def confirm(db, patient, actor, data, now, revision):
     if set(data.acknowledged_warning_ids) != {w['id'] for w in record.warnings}:
         raise HTTPException(409, 'Acknowledge every warning before saving')
     if record.confirmed_version_id:
-        return dict(version_id=record.confirmed_version_id, schedule_status='not_integrated')
+        version = db.get(PrescriptionVersion, record.confirmed_version_id)
+        return dict(version_id=version.id, schedule_status=version.schedule_status)
     if record.expires_at <= now:
         raise HTTPException(409, 'Review expired; run the warning check again')
     items = [PrescriptionItemInput.model_validate(i) for i in record.proposed_items]
@@ -178,4 +180,7 @@ def confirm(db, patient, actor, data, now, revision):
     db.add(AuditEvent(patient_id=patient.id, actor_user_id=actor.id, action='medicine_record_confirmed',
                       resource_type='prescription_versions', resource_id=version.id))
     db.flush()
+    ScheduleService().regenerate(db, RegenerateScheduleCommand(
+        patient_id=patient.id, prescription_id=root.id, new_version_id=version.id,
+        effective_from=now), now)
     return dict(version_id=version.id, schedule_status=version.schedule_status)

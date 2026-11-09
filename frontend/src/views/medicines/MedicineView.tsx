@@ -2,10 +2,11 @@ import React from 'react';
 import { Alert, Box, Button, Checkbox, Divider, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { api } from '../../lib/api';
 import { Page, Patient, User } from '../../lib/types';
+import { DoseSchedule } from './DoseSchedule';
 
 type Medicine = { id: string; brand_name: string; generic_name: string; strength: string; form: string; source_name: string; source_license: string };
 type Item = { medicine_id: string; quantity_per_dose: string; unit: string; start_date: string; end_date: string | null; schedule_kind: string; times_local: string[]; timezone: string; meal_relation: string; instructions: string | null };
-type Saved = Item & { id: string; medicine: Medicine };
+type Saved = Item & { id: string; medicine: Medicine; schedule_status: string };
 type Warning = { id: string; kind: string; severity: string; message: string; source: string };
 type Review = { check_id: string; warnings: Warning[]; coverage: string };
 type Rule = { id: string; severity: string; explanation: string; source: string };
@@ -77,7 +78,8 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
     {canRead && <Paper variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
       <Typography variant="h6">{patient?.display_name} · Recorded medicines</Typography>
       <Button disabled={busy} onClick={() => void act(async () => { await loadPatient(); invalidate(); })}>Refresh medicine records</Button>
-      {saved.length ? saved.map(s => <Box key={s.id}><Typography fontWeight={600}>{s.medicine.brand_name} · {s.quantity_per_dose} {s.unit}</Typography><Typography variant="body2">{s.start_date} to {s.end_date ?? 'no end date'} · {s.schedule_kind === 'as_needed' ? 'As needed' : s.times_local.join(', ')} · {s.timezone}</Typography><Typography variant="caption">Dose scheduling not integrated</Typography></Box>) : <Typography>No current or upcoming medicine records.</Typography>}
+      {saved.length ? saved.map(s => <Box key={s.id}><Typography fontWeight={600}>{s.medicine.brand_name} · {s.quantity_per_dose} {s.unit}</Typography><Typography variant="body2">{s.start_date} to {s.end_date ?? 'no end date'} · {s.schedule_kind === 'as_needed' ? 'As needed' : s.times_local.join(', ')} · {s.timezone}</Typography><Typography variant="caption">{s.schedule_status === 'generated' ? 'Schedule generated; refresh to extend it' : 'Schedule not generated; use Refresh dose schedule'}</Typography></Box>) : <Typography>No current or upcoming medicine records.</Typography>}
+      <Divider /><DoseSchedule patientId={patient!.id} canWrite={canWrite} records={saved} />
       <Divider /><Typography variant="h6">Reported generic allergies</Typography>
       <TextField label="Allergy generic names (one per line)" multiline minRows={2} value={allergies} disabled={!canWrite || busy} onChange={e => { setAllergies(e.target.value); invalidate(); }} helperText="Use exact catalogue generic names. Class allergies and synonyms are not checked. Saving an empty list clears entries." />
       {canWrite && <Button disabled={busy} onClick={() => void act(async () => { await api(`${path}/allergies`, { method: 'PUT', body: JSON.stringify({ generic_names: allergies.split('\n').map(s => s.trim()).filter(Boolean) }) }); invalidate(); setNotice('Reported allergies saved.'); })}>Save reported allergies</Button>}
@@ -102,7 +104,7 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
         {!review.warnings.length && <Alert severity="info">No matches in the limited reference rules.</Alert>}
         {review.warnings.map(w => <Box key={w.id}><Alert severity={w.severity === 'critical' ? 'error' : w.severity === 'warning' ? 'warning' : 'info'}><Typography fontWeight={700}>{w.kind} · {w.severity}</Typography><Typography>{w.message}</Typography><Typography variant="caption">Source: {w.source}</Typography></Alert><FormControlLabel control={<Checkbox checked={ack.includes(w.id)} onChange={e => setAck(e.target.checked ? [...ack, w.id] : ack.filter(id => id !== w.id))} />} label={`I have reviewed this ${w.kind} warning`} /></Box>)}
         <Typography variant="caption">Acknowledgement records review, not medical approval. Review expires in 15 minutes.</Typography>
-        <Button variant="contained" disabled={busy || ack.length !== review.warnings.length} onClick={() => void act(async () => { await api(`${path}/prescriptions/confirm`, { method: 'POST', body: JSON.stringify({ check_id: review.check_id, acknowledged_warning_ids: ack }) }); setDraft([]); invalidate(); await loadPatient(); setNotice('Medicine record saved. Dose scheduling is not integrated yet.'); })}>Confirm medicine record</Button></>}
+        <Button variant="contained" disabled={busy || ack.length !== review.warnings.length} onClick={() => void act(async () => { await api(`${path}/prescriptions/confirm`, { method: 'POST', body: JSON.stringify({ check_id: review.check_id, acknowledged_warning_ids: ack }) }); setDraft([]); invalidate(); await loadPatient(); setNotice('Medicine record saved and dose schedule generated.'); })}>Confirm medicine record</Button></>}
     </Stack></Paper>}
     {user.is_admin && <Paper variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
       <Typography variant="h6">Reference administration</Typography><Typography>CSV columns: generic_name, brand_name, strength, form, source_name, source_license. Up to 500 rows. Any invalid row prevents the entire import; existing identities are skipped.</Typography>

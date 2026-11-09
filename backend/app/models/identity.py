@@ -112,6 +112,10 @@ class Alert(Entity, Base):
     source_id: Mapped[str] = mapped_column(CHAR(36))
     dedupe_key: Mapped[str] = mapped_column(String(160))
     status: Mapped[str] = mapped_column(String(20), default='open')
+    acknowledged_by: Mapped[str | None] = mapped_column(ForeignKey('users.id'))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    resolved_by: Mapped[str | None] = mapped_column(ForeignKey('users.id'))
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
 
 class AlertRecipient(Entity, Base):
@@ -139,3 +143,13 @@ class RateBucket(Base):
     key: Mapped[str] = mapped_column(CHAR(64), primary_key=True)
     hits: Mapped[int] = mapped_column(Integer, default=1)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+
+
+class AlertPreference(Entity, Base):
+    __tablename__ = 'alert_preferences'
+    __table_args__ = (UniqueConstraint('patient_id', 'user_id', name='uq_alert_preference'),)
+    patient_id: Mapped[str] = mapped_column(ForeignKey('patients.id'))
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'))
+    timezone: Mapped[str] = mapped_column(String(64))
+    quiet_start: Mapped[str | None] = mapped_column(String(5))
+    quiet_end: Mapped[str | None] = mapped_column(String(5))
