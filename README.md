@@ -6,6 +6,9 @@ A web application for coordinating medication adherence and family caregiving.
 
 ## Current implementation
 
+This folder includes **Tanjila Sprint 2: CC-02 printed prescription OCR and CC-05 prescription revisions/history**, in addition to whole-team Sprint 1 and Sandip's CC-18. Follow [Tanjila Sprint 2 setup and demonstration](docs/tanjila-sprint-2.md). OCR requires a separately installed Tesseract 5 executable with English language data; Pillow is included in the Python lock file. `backend/data/prescription-demo.png` is a synthetic demonstration image.
+
+
 This folder adds **Sandip Sprint 2 — CC-18 Health alert centre** to the verified whole-team Sprint 1. See [Sandip Sprint 2 guide](docs/sandip-sprint-2.md) for the demonstration, permissions and delivery boundaries. The alert centre supports scoped feeds, severity/time ordering, read/acknowledge/resolve, pending-delivery cancellation and personal email quiet hours. Email delivery itself remains future work.
 
 
@@ -13,9 +16,9 @@ Whole-team Sprint 1 includes Sandip **CC-01 care circles and consent**, Tanjila 
 
 Caregiver permissions, warning acknowledgement and patient isolation remain enforced. Confirming a medicine record now creates its future dose events in the same transaction. The Upcoming doses view shows quantities and local times; Manage medicines permits horizon refresh. As-needed medicines have no automatic events. Vitals include per-patient thresholds and deterministic trend alerts.
 
-Migrations form one additive chain: `0001_sandip` → `0002_tanjila` → `0003_saif` → `0004_tasin` → `0005_sandip`. Existing medicine records are preserved; use **Refresh dose schedule** to generate their future doses without replaying past ones.
+Migrations form one additive chain: `0001_sandip` → `0002_tanjila` → `0003_saif` → `0004_tasin` → `0005_sandip` → `0006_tanjila`. Existing medicine records are preserved; use **Refresh dose schedule** to generate their future doses without replaying past ones.
 
-The medicine data is fictional teaching data. Reminder delivery, adherence confirmation, OCR, prescription revisions/stopping, risk prediction and production deployment remain outside this increment. See [current status](docs/status.md), [dose scheduling guide](docs/tasin-sprint-1.md) and [validation](VALIDATION.md).
+The medicine data is fictional teaching data. Reminder delivery, adherence confirmation, risk prediction and production deployment remain outside this increment. OCR produces reviewed drafts; confirmed revisions/stops preserve version history and update only future pending doses. See [current status](docs/status.md), [dose scheduling guide](docs/tasin-sprint-1.md) and [validation](VALIDATION.md).
 
 ## Start here after cloning
 
@@ -25,7 +28,7 @@ The medicine data is fictional teaching data. Reminder delivery, adherence confi
 4. Read [architecture](docs/architecture.md), [database design](docs/data-model.md) and [shared contracts](docs/contracts.md).
 5. Follow [CONTRIBUTING.md](CONTRIBUTING.md), including migration coordination and required checks.
 
-Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0005_sandip`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
+Reuse the implemented accounts, patients, sessions and permission service. Extend the migration chain from `0006_tanjila`; do not create another initial schema. The full-project database document includes planned tables, so check the current models/migrations before assuming a feature exists.
 
 ## Technology stack
 
@@ -124,8 +127,12 @@ Significant packages and data sources must be recorded in [dependencies](docs/de
 
 ## Medicine demonstration setup
 
-Use the normal account registration flow, then grant reference administration through the local operator command described in [Tanjila’s handoff](docs/tanjila-sprint-1.md). Import `backend/data/medicines-demo.csv` through the UI and add the documented fictional interaction rule. There are no seeded credentials, automatic clinical approvals, OCR or dose reminders. All patient workflows reuse the existing medicine read/write scopes.
+Use the normal account registration flow, then grant reference administration through the local operator command described in [Tanjila’s handoff](docs/tanjila-sprint-1.md). Import `backend/data/medicines-demo.csv` through the UI and add the documented fictional interaction rule. There are no seeded credentials, automatic clinical approvals or dose reminders. All patient workflows reuse the existing medicine read/write scopes.
 
 ## Daily schedule extension
 
 Run `python -m app.refresh_schedules` from `backend` with the configured Python environment, or schedule this command daily in your operating system. It extends each confirmed record through today plus 13 days. No background scheduler is installed automatically. The UI Refresh dose schedule button also extends the selected patient’s horizon. No reminder messages are sent.
+
+## Tanjila Sprint 2 local prerequisite
+
+Install Tesseract 5 with English data and set `TESSERACT_CMD` in backend/.env if its executable is not on PATH. See [installation instructions](docs/tanjila-sprint-2.md). Tests include real image recognition and require the engine; missing OCR still leaves manual medicine entry available in the app. GitHub Actions installs the Linux OCR engine before testing.
