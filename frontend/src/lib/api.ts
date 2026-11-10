@@ -21,7 +21,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const method = (options.method ?? 'GET').toUpperCase();
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
-  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     if (!csrfToken) throw new ApiError(0, 'csrf_unavailable', 'Sign in before making changes');
     headers.set('X-CSRF-Token', csrfToken);

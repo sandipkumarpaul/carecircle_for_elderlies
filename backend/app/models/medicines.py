@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import CHAR, Date, ForeignKey, Integer, JSON, Numeric, String, UniqueConstraint
+from sqlalchemy import CHAR, Date, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.identity import Base, Entity, UTCDateTime
 
@@ -52,6 +52,9 @@ class PrescriptionVersion(Entity, Base):
     confirmed_by: Mapped[str] = mapped_column(ForeignKey('users.id'))
     confirmed_at: Mapped[datetime] = mapped_column(UTCDateTime())
     schedule_status: Mapped[str] = mapped_column(String(30), default='not_integrated')
+    previous_version_id: Mapped[str | None] = mapped_column(ForeignKey('prescription_versions.id'))
+    change_reason: Mapped[str | None] = mapped_column(String(1000))
+    ocr_draft_id: Mapped[str | None] = mapped_column(ForeignKey('ocr_drafts.id'))
 
 
 class PrescriptionItem(Entity, Base):
@@ -80,3 +83,19 @@ class WarningCheck(Entity, Base):
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
     acknowledged_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     confirmed_version_id: Mapped[str | None] = mapped_column(ForeignKey('prescription_versions.id'), unique=True)
+    replaces_version_id: Mapped[str | None] = mapped_column(ForeignKey('prescription_versions.id'))
+    change_reason: Mapped[str | None] = mapped_column(String(1000))
+    ocr_draft_id: Mapped[str | None] = mapped_column(ForeignKey('ocr_drafts.id'))
+
+
+class OcrDraft(Entity, Base):
+    __tablename__ = 'ocr_drafts'
+    patient_id: Mapped[str] = mapped_column(ForeignKey('patients.id'), index=True)
+    uploaded_by: Mapped[str] = mapped_column(ForeignKey('users.id'))
+    raw_text: Mapped[str] = mapped_column(Text)
+    reviewed_text: Mapped[str] = mapped_column(Text)
+    recognition_status: Mapped[str] = mapped_column(String(30))
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    reviewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    reviewed_by: Mapped[str | None] = mapped_column(ForeignKey('users.id'))
+    edit_revision: Mapped[int] = mapped_column(Integer, default=0)

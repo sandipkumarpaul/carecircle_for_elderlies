@@ -1,5 +1,8 @@
 # Tanjila — Sprint 1 implementation and handoff
 
+Current update: CC-02 OCR and CC-05 revision/stop/history are implemented in [Tanjila Sprint 2](tanjila-sprint-2.md). Statements below about these being future work describe this earlier handoff.
+
+
 CC-03 (medicine reference) and CC-04 (interaction warnings) extend Sandip's CC-01 and authentication. OCR (CC-02) and prescription revision/stop/history workflows (CC-05) remain later work.
 
 ## Setup and demonstration

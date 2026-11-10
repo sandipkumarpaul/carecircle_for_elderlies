@@ -1,3 +1,31 @@
+# Tanjila Sprint 2 on the combined team project — 10 November 2026
+
+Prepared from the verified 20b80a3 Sandip Sprint 2 source copy. No GitHub upload was performed. This increment adds CC-02 and CC-05; earlier features remain included.
+
+| Check | Result |
+|---|---|
+| Full backend suite, MySQL 8.4 | **155 passed**, no skips; 141 predecessor cases plus 14 Tanjila Sprint 2 cases |
+| Full browser suite, Microsoft Edge | **6 passed**, including all five predecessor workflows and real OCR → review → confirmation → revision → stop → dose/alert/history persistence |
+| Final TypeScript / Vite production build | Passed |
+| Populated 0005_sandip → 0006_tanjila migration | Passed; predecessor identity, medicine/version/item, dose, vitals, warning-review and alert/delivery rows preserved |
+| Alembic model/schema comparison | Passed; no additional operations detected; single head 0006_tanjila |
+| Documentation links / feature ownership | Passed |
+| Mobile history layout | 390px width with no horizontal overflow; history screenshot inspected |
+
+Real OCR was exercised using Tesseract 5.5.3.20260724, English traineddata and Pillow 13.0.0, with the bundled fictional printed image and a blank image. This demonstrates the workflow, not a general recognition or clinical-accuracy benchmark. OCR failure/timeout, invalid or oversized upload, stale review, cross-patient access, read-only access and permission revocation during recognition are covered. Confirmed OCR source drafts reject subsequent edits.
+
+Revision coverage proves that the replaced version is excluded from self-duplicate warnings while other prescription roots still participate; warnings remain mandatory; old item values and completed/elapsed dose history survive; only future pending doses are cancelled. Concurrent/stale revisions cannot overwrite a newer version. Revision and stop failures roll back the full transaction. Stop retries are idempotent. Authorized caregivers receive one in-app prescription-change alert per change through CC-18.
+
+Tests used only the guarded carecircle_test database. Migration validation temporarily removed/reapplied the new migration only in that disposable database and compared predecessor columns. Production/local-preview data and the original whole_team_S1_Sandip_S2 folder were not reset or modified. Private test configuration, caches, dependency links, build outputs and screenshots are excluded from the upload package.
+
+An initial test attempt encountered a stopped local MySQL runtime; the database was restarted and the final full run above passed. Existing non-failing TestClient/httpx deprecation and Vite bundle-size advisories remain. The updated GitHub workflow installs Tesseract; its hosted result must be checked after Tanjila pushes. Other teammates must install/configure the OCR engine locally to run OCR and its integration tests. Manual medicine entry remains available when OCR is unavailable.
+
+---
+
+## Historical predecessor validation
+
+The following records describe earlier increments, not missing functionality in this update.
+
 # Sandip Sprint 2 on whole-team Sprint 1 — 9 November 2026
 
 This package copies the verified Whole_Team_Sprint1 increment and adds CC-18. No GitHub upload has been performed.

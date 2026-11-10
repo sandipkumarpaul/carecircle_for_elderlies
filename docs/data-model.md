@@ -104,3 +104,7 @@ Prescription roots currently have patient_id and created_by, without an OCR docu
 ## CC-18 migration
 
 0005_sandip follows 0004_tasin, adds nullable lifecycle fields and foreign keys to alerts, and creates alert_preferences with a unique patient/user pair. Existing alerts and recipients are preserved. No preferences means quiet hours are disabled. The planned member_preferences concept above is implemented for this feature as alert_preferences.
+
+## Tanjila Sprint 2 migration
+
+0006_tanjila follows 0005_sandip. ocr_drafts stores patient/uploader, raw and reviewed text, recognition status/confidence, reviewer/time and edit_revision. Images are not stored. prescription_versions adds previous_version_id, change_reason and ocr_draft_id. warning_checks adds replaces_version_id, change_reason and ocr_draft_id. All added fields on existing tables are nullable; existing records are preserved. Once a draft is attached to a confirmed version its reviewed text is immutable. A stopped version has no items and closes the predecessor interval.

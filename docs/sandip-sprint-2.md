@@ -1,5 +1,8 @@
 # Sandip Sprint 2 — CC-18 Health alert centre
 
+Current update: CC-02 OCR and CC-05 revision/stop/history are implemented in [Tanjila Sprint 2](tanjila-sprint-2.md). Statements below about these being future work describe this earlier handoff.
+
+
 This increment adds one assessed feature on top of the whole team's Sprint 1. Existing care circles, medicine workflows, dose schedules and vitals remain included. Authentication remains supporting functionality.
 
 ## Behaviour

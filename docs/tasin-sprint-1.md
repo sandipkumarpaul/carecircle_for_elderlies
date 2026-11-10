@@ -1,5 +1,8 @@
 # Tasin — CC-06 dose schedule integration
 
+Current update: CC-02 OCR and CC-05 revision/stop/history are implemented in [Tanjila Sprint 2](tanjila-sprint-2.md). Statements below about these being future work describe this earlier handoff.
+
+
 The 9 November integration places Tasin's uploaded modules in their application paths and connects them to Tanjila's medicine confirmation. Original GitHub base: 6527df4, following Saif's 5dafa52 and Tanjila's a94f364.
 
 ## MVC and transaction flow

@@ -9,7 +9,7 @@ def test_liveness_does_not_claim_feature_readiness():
     with TestClient(app) as client:
         response = client.get("/api/v1/health")
         assert response.status_code == 200
-        assert response.json()["stage"] == "whole-team-s1-sandip-s2"
+        assert response.json()["stage"] == "whole-team-s1-sandip-tanjila-s2"
         paths = client.get("/api/openapi.json").json()["paths"]
         assert '/api/v1/auth/login' in paths
         assert '/api/v1/patients/{patient_id}/circle' in paths

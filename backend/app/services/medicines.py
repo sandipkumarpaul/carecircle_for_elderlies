@@ -12,10 +12,12 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from app.models import AuditEvent
 from app.models.medicines import (Medicine, InteractionRule, Prescription, PrescriptionVersion,
-                                  PrescriptionItem, WarningCheck, ReferenceRevision)
+                                  PrescriptionItem, WarningCheck, ReferenceRevision, OcrDraft)
 from app.schemas.medicines import MedicineInput, normalized
 from app.schemas.contracts import PrescriptionItemInput, RegenerateScheduleCommand
 from app.services.schedules import ScheduleService
+from app.services.alerts import AlertService
+from app.schemas.contracts import RaiseAlertCommand
 
 
 def digest(value):
@@ -103,7 +105,7 @@ def active_items(db, patient_id, now):
             and (item.end_date is None or item.end_date >= now.astimezone(ZoneInfo(item.timezone)).date())]
 
 
-def evaluate(db, patient, items, now, revision):
+def evaluate(db, patient, items, now, revision, replaces_version_id=None):
     medicines = {m.id: m for m in db.scalars(select(Medicine).where(Medicine.id.in_([str(i.medicine_id) for i in items])))}
     if len(medicines) != len(set(str(i.medicine_id) for i in items)):
         raise HTTPException(422, 'One or more medicines do not exist')
@@ -113,7 +115,7 @@ def evaluate(db, patient, items, now, revision):
             raise HTTPException(422, 'Dose unit does not match medicine form')
         if item.end_date and item.end_date < now.astimezone(ZoneInfo(item.timezone)).date():
             raise HTTPException(422, 'Cannot add an already-ended medicine record')
-    existing = active_items(db, patient.id, now)
+    existing = [(i, m, v) for i, m, v in active_items(db, patient.id, now) if v.id != replaces_version_id]
     proposed = [(f'proposed:{n}', medicines[str(i.medicine_id)], i.start_date, i.end_date, True) for n, i in enumerate(items)]
     current = [(i.id, med, i.start_date, i.end_date, False) for i, med, _ in existing]
     rules = list(db.scalars(select(InteractionRule).order_by(InteractionRule.id)))
@@ -142,11 +144,38 @@ def evaluate(db, patient, items, now, revision):
     return warnings, state
 
 
+def current_version(db, patient, version_id):
+    version = db.get(PrescriptionVersion, str(version_id))
+    if not version or version.patient_id != patient.id:
+        raise HTTPException(404, 'Prescription version not found')
+    latest = db.scalar(select(PrescriptionVersion).where(PrescriptionVersion.prescription_id == version.prescription_id)
+        .order_by(PrescriptionVersion.version_number.desc()).limit(1))
+    if latest.id != version.id or version.status != 'confirmed' or version.effective_until is not None:
+        raise HTTPException(409, 'Prescription changed or stopped; reload its history')
+    return version
+
+
+def ocr_context(db, patient, draft_id):
+    if draft_id is None:
+        return None
+    draft = db.get(OcrDraft, str(draft_id))
+    if not draft or draft.patient_id != patient.id:
+        raise HTTPException(404, 'OCR draft not found')
+    if draft.reviewed_at is None:
+        raise HTTPException(409, 'Review and save the extracted text first')
+    return [draft.id, draft.edit_revision]
+
+
 def check(db, patient, actor, data, now, revision):
-    warnings, state = evaluate(db, patient, data.items, now, revision)
+    previous = current_version(db, patient, data.replaces_version_id) if data.replaces_version_id else None
+    source = ocr_context(db, patient, data.ocr_draft_id)
+    warnings, state = evaluate(db, patient, data.items, now, revision, previous.id if previous else None)
+    state = digest([state, source])
     record = WarningCheck(patient_id=patient.id, actor_user_id=actor.id,
         proposed_items=[i.model_dump(mode='json') for i in data.items], warnings=warnings,
-        state_hash=state, expires_at=now + timedelta(minutes=15))
+        state_hash=state, expires_at=now + timedelta(minutes=15),
+        replaces_version_id=previous.id if previous else None, change_reason=data.change_reason,
+        ocr_draft_id=str(data.ocr_draft_id) if data.ocr_draft_id else None)
     db.add(record); db.flush()
     return dict(check_id=record.id, warnings=warnings, expires_at=record.expires_at,
                 coverage='Limited curated rules and exact generic allergies only. No warnings does not establish safety.')
@@ -164,13 +193,21 @@ def confirm(db, patient, actor, data, now, revision):
     if record.expires_at <= now:
         raise HTTPException(409, 'Review expired; run the warning check again')
     items = [PrescriptionItemInput.model_validate(i) for i in record.proposed_items]
-    _, state = evaluate(db, patient, items, now, revision)
+    previous = current_version(db, patient, record.replaces_version_id) if record.replaces_version_id else None
+    source = ocr_context(db, patient, record.ocr_draft_id)
+    _, state = evaluate(db, patient, items, now, revision, previous.id if previous else None)
+    state = digest([state, source])
     if state != record.state_hash:
         raise HTTPException(409, 'Medicines, allergies or reference data changed; check again')
-    root = Prescription(patient_id=patient.id, created_by=actor.id)
-    db.add(root); db.flush()
-    version = PrescriptionVersion(prescription_id=root.id, patient_id=patient.id, version_number=1,
-        status='confirmed', effective_from=now, confirmed_by=actor.id, confirmed_at=now)
+    root = db.get(Prescription, previous.prescription_id) if previous else Prescription(patient_id=patient.id, created_by=actor.id)
+    if previous is None:
+        db.add(root); db.flush()
+    else:
+        previous.effective_until = now
+    version = PrescriptionVersion(prescription_id=root.id, patient_id=patient.id, version_number=previous.version_number + 1 if previous else 1,
+        status='confirmed', effective_from=now, confirmed_by=actor.id, confirmed_at=now,
+        previous_version_id=previous.id if previous else None, change_reason=record.change_reason,
+        ocr_draft_id=record.ocr_draft_id)
     db.add(version); db.flush()
     for item in items:
         values = item.model_dump(); values['medicine_id'] = str(item.medicine_id)
@@ -182,5 +219,41 @@ def confirm(db, patient, actor, data, now, revision):
     db.flush()
     ScheduleService().regenerate(db, RegenerateScheduleCommand(
         patient_id=patient.id, prescription_id=root.id, new_version_id=version.id,
+        previous_version_id=previous.id if previous else None,
         effective_from=now), now)
+    if previous:
+        notify_change(db, patient, version, now)
     return dict(version_id=version.id, schedule_status=version.schedule_status)
+
+
+def notify_change(db, patient, version, now):
+    AlertService().raise_alert(db, RaiseAlertCommand(patient_id=patient.id, type='prescription_changed',
+        severity='info', source_type='prescription_version', source_id=version.id,
+        dedupe_key=f'prescription_changed:{version.id}'), now)
+
+
+def stop(db, patient, actor, root_id, data, now):
+    root = db.get(Prescription, str(root_id))
+    if not root or root.patient_id != patient.id:
+        raise HTTPException(404, 'Prescription not found')
+    latest = db.scalar(select(PrescriptionVersion).where(PrescriptionVersion.prescription_id == root.id)
+        .order_by(PrescriptionVersion.version_number.desc()).limit(1))
+    if latest and latest.status == 'stopped' and latest.previous_version_id == str(data.expected_version_id):
+        if latest.confirmed_by != actor.id or latest.change_reason != data.reason:
+            raise HTTPException(409, 'Prescription already stopped; reload history')
+        return dict(version_id=latest.id, status='stopped')
+    previous = current_version(db, patient, data.expected_version_id)
+    if previous.prescription_id != root.id:
+        raise HTTPException(404, 'Prescription version not found')
+    previous.effective_until = now
+    stopped = PrescriptionVersion(prescription_id=root.id, patient_id=patient.id, version_number=previous.version_number + 1,
+        previous_version_id=previous.id, change_reason=data.reason, status='stopped', schedule_status='stopped',
+        effective_from=now, confirmed_by=actor.id, confirmed_at=now)
+    db.add(stopped); db.flush()
+    ScheduleService().regenerate(db, RegenerateScheduleCommand(patient_id=patient.id, prescription_id=root.id,
+        previous_version_id=previous.id, effective_from=now), now)
+    notify_change(db, patient, stopped, now)
+    db.add(AuditEvent(patient_id=patient.id, actor_user_id=actor.id, action='prescription_stopped',
+                      resource_type='prescription_versions', resource_id=stopped.id))
+    db.flush()
+    return dict(version_id=stopped.id, status='stopped')

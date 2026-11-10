@@ -8,7 +8,7 @@ from alembic import command
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, text
+from sqlalchemy import delete, text, update
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.main import app
 from app.models import Base
-from app.models.medicines import ReferenceRevision
+from app.models.medicines import ReferenceRevision, PrescriptionVersion
 
 
 @pytest.fixture(scope='session')
@@ -50,6 +50,8 @@ def mysql_database():
 def db_engine(mysql_database):
     # Delete only known application tables in the explicitly guarded test database.
     with Session(mysql_database) as session, session.begin():
+        # Clear self-referencing lineage only in this guarded disposable test DB.
+        session.execute(update(PrescriptionVersion).values(previous_version_id=None))
         for table in reversed(Base.metadata.sorted_tables):
             session.execute(delete(table))
         session.add(ReferenceRevision(id=1, revision=0))

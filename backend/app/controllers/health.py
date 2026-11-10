@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1", tags=["health"])
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     service: Literal["carecircle-api"] = "carecircle-api"
-    stage: Literal["whole-team-s1-sandip-s2"] = "whole-team-s1-sandip-s2"
+    stage: Literal["whole-team-s1-sandip-tanjila-s2"] = "whole-team-s1-sandip-tanjila-s2"
 
 
 @router.get("/health", response_model=HealthResponse)

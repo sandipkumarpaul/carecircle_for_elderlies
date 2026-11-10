@@ -51,6 +51,6 @@ export default function App() {
     {user && <Box sx={{ mt: 4 }}><MedicineView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} user={user} patient={selected} /></Box>}
     {user && <Box sx={{ mt: 4 }}><AlertCenter key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
     {user && <Box id="vitals-panel" sx={{ mt: 4 }}><VitalsView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
-    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Team Sprint 1 + Sandip Sprint 2 · Care circles, medicines, doses, vitals and health alerts.</Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Team Sprint 1 + Sandip and Tanjila Sprint 2 · Care circles, prescriptions, doses, vitals and alerts.</Typography>
   </Container>{createOpen && <PatientForm onClose={() => setCreateOpen(false)} onCreated={p => { setCreateOpen(false); setNotice('Patient profile created with consent.'); void loadPatients(0, p.id); }} />}</>;
 }

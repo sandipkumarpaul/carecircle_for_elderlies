@@ -3,9 +3,11 @@ import { Alert, Box, Button, Checkbox, Divider, FormControlLabel, MenuItem, Pape
 import { api } from '../../lib/api';
 import { Page, Patient, User } from '../../lib/types';
 import { DoseSchedule } from './DoseSchedule';
+import { PrescriptionHistory, Version } from './PrescriptionHistory';
+import { PrescriptionOCR } from './PrescriptionOCR';
 
-type Medicine = { id: string; brand_name: string; generic_name: string; strength: string; form: string; source_name: string; source_license: string };
-type Item = { medicine_id: string; quantity_per_dose: string; unit: string; start_date: string; end_date: string | null; schedule_kind: string; times_local: string[]; timezone: string; meal_relation: string; instructions: string | null };
+export type Medicine = { id: string; brand_name: string; generic_name: string; strength: string; form: string; source_name: string; source_license: string };
+export type Item = { medicine_id: string; quantity_per_dose: string; unit: string; start_date: string; end_date: string | null; schedule_kind: string; times_local: string[]; timezone: string; meal_relation: string; instructions: string | null };
 type Saved = Item & { id: string; medicine: Medicine; schedule_status: string };
 type Warning = { id: string; kind: string; severity: string; message: string; source: string };
 type Review = { check_id: string; warnings: Warning[]; coverage: string };
@@ -23,6 +25,8 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
   const [allergies, setAllergies] = React.useState(''); const [saved, setSaved] = React.useState<Saved[]>([]);
   const [chosen, setChosen] = React.useState<Medicine | null>(null);
   const [quantity, setQuantity] = React.useState('1'); const [start, setStart] = React.useState(''); const [end, setEnd] = React.useState('');
+  const [replacing, setReplacing] = React.useState<Version | null>(null); const [changeReason, setChangeReason] = React.useState('');
+  const [ocrDraftId, setOcrDraftId] = React.useState<string | null>(null); const [itemTimezone, setItemTimezone] = React.useState(patient?.timezone ?? 'Asia/Dhaka');
   const [kind, setKind] = React.useState('fixed_times'); const [times, setTimes] = React.useState('08:00');
   const [meal, setMeal] = React.useState('none'); const [instructions, setInstructions] = React.useState('');
   const [draft, setDraft] = React.useState<{ item: Item; medicine: Medicine }[]>([]);
@@ -49,13 +53,26 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
     if (!chosen || !patient || !start || Number(quantity) <= 0) { setError('Choose a medicine, positive quantity and start date.'); return; }
     if (draft.length >= 20) { setError('Maximum 20 proposed items per review.'); return; }
     const item: Item = { medicine_id: chosen.id, quantity_per_dose: quantity, unit: units[chosen.form], start_date: start, end_date: end || null,
-      schedule_kind: kind, times_local: kind === 'fixed_times' ? times.split(',').map(t => t.trim()) : [], timezone: patient.timezone, meal_relation: meal, instructions: instructions || null };
+      schedule_kind: kind, times_local: kind === 'fixed_times' ? times.split(',').map(t => t.trim()) : [], timezone: itemTimezone, meal_relation: meal, instructions: instructions || null };
     setDraft([...draft, { medicine: chosen, item }]); setChosen(null); invalidate(); setError('');
+  }
+  function beginRevision(v: Version) {
+    setReplacing(v); setChangeReason(''); setOcrDraftId(null); setChosen(null); invalidate();
+    setDraft(v.items.map(({ medicine, ...item }) => ({ medicine, item })));
+    setNotice('Revision draft loaded. Edit or replace items, enter a reason, then check all warnings before confirming.');
+    document.getElementById('medicine-proposal')?.scrollIntoView({ behavior: 'smooth' });
+  }
+  function editItem(index: number) {
+    const d = draft[index]; setChosen(d.medicine); setQuantity(d.item.quantity_per_dose); setStart(d.item.start_date);
+    setEnd(d.item.end_date ?? ''); setKind(d.item.schedule_kind); setTimes(d.item.times_local.join(', '));
+    setMeal(d.item.meal_relation); setInstructions(d.item.instructions ?? ''); setItemTimezone(d.item.timezone);
+    setDraft(draft.filter((_, n) => n !== index)); invalidate();
   }
   return <Stack spacing={3}>
     <Typography variant="h5" component="h2">Medicine reference & review</Typography>
     <Alert severity="info">The included catalogue is synthetic teaching data. Checks cover only recorded rules and exact generic-name allergies. No warnings does not establish safety. Saving a record does not create dose reminders yet.</Alert>
     {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}{notice && <Alert severity="success">{notice}</Alert>}
+    {canRead && <Paper variant="outlined" sx={{ p: 3 }}><PrescriptionOCR patientId={patient!.id} canWrite={canWrite} onChoose={(medicine, id) => { setChosen(medicine); setOcrDraftId(id); setItemTimezone(patient!.timezone); invalidate(); document.getElementById('medicine-proposal')?.scrollIntoView({ behavior: 'smooth' }); }} /></Paper>}
     <Paper variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
       <Typography variant="h6">Search reference catalogue</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -69,7 +86,7 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
         <Typography variant="caption" sx={{ overflowWrap: 'anywhere' }}>Source: {m.source_name} · License/provenance: {m.source_license}</Typography>
         <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
           <Button disabled={busy} onClick={() => void act(async () => { setQ(m.generic_name); setGeneric(m.generic_name); setStrength(''); setForm(''); await search(0, m.generic_name, '', '', m.generic_name); })}>Find generic alternatives</Button>
-          {canWrite && <Button disabled={busy} onClick={() => setChosen(m)}>Choose {m.brand_name}</Button>}
+          {canWrite && <Button disabled={busy} onClick={() => { setChosen(m); setItemTimezone(patient!.timezone); }}>Choose {m.brand_name}</Button>}
           {user.is_admin && <><Button onClick={() => setRuleA(m)}>Use as rule A</Button><Button onClick={() => setRuleB(m)}>Use as rule B</Button></>}
         </Stack></Box>)}
       {!page.items.length && <Typography>No medicines found. An administrator can import a reference CSV.</Typography>}
@@ -80,13 +97,16 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
       <Button disabled={busy} onClick={() => void act(async () => { await loadPatient(); invalidate(); })}>Refresh medicine records</Button>
       {saved.length ? saved.map(s => <Box key={s.id}><Typography fontWeight={600}>{s.medicine.brand_name} · {s.quantity_per_dose} {s.unit}</Typography><Typography variant="body2">{s.start_date} to {s.end_date ?? 'no end date'} · {s.schedule_kind === 'as_needed' ? 'As needed' : s.times_local.join(', ')} · {s.timezone}</Typography><Typography variant="caption">{s.schedule_status === 'generated' ? 'Schedule generated; refresh to extend it' : 'Schedule not generated; use Refresh dose schedule'}</Typography></Box>) : <Typography>No current or upcoming medicine records.</Typography>}
       <Divider /><DoseSchedule patientId={patient!.id} canWrite={canWrite} records={saved} />
+      <Divider /><PrescriptionHistory patientId={patient!.id} canWrite={canWrite} records={saved} onRevise={beginRevision} onChanged={async () => { invalidate(); setReplacing(null); setDraft([]); await loadPatient(); }} />
       <Divider /><Typography variant="h6">Reported generic allergies</Typography>
       <TextField label="Allergy generic names (one per line)" multiline minRows={2} value={allergies} disabled={!canWrite || busy} onChange={e => { setAllergies(e.target.value); invalidate(); }} helperText="Use exact catalogue generic names. Class allergies and synonyms are not checked. Saving an empty list clears entries." />
       {canWrite && <Button disabled={busy} onClick={() => void act(async () => { await api(`${path}/allergies`, { method: 'PUT', body: JSON.stringify({ generic_names: allergies.split('\n').map(s => s.trim()).filter(Boolean) }) }); invalidate(); setNotice('Reported allergies saved.'); })}>Save reported allergies</Button>}
     </Stack></Paper>}
     {patient && !canRead && <Alert severity="info">Your permissions do not include this patient’s medicine records.</Alert>}
-    {canWrite && <Paper variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
-      <Typography variant="h6">Propose medicine record</Typography><Typography>Select a catalogue medicine and enter existing prescription instructions. Timezone: {patient?.timezone}.</Typography>
+    {canWrite && <Paper id="medicine-proposal" variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
+      <Typography variant="h6">Propose medicine record</Typography><Typography>Select a catalogue medicine and enter existing prescription instructions. Timezone for this item: {itemTimezone}.</Typography>
+      {replacing && <><Alert severity="info">Revising version {replacing.version_number}. This replaces the entire prescription item list, effective when confirmed.</Alert><TextField label="Reason for revision" value={changeReason} onChange={e => { setChangeReason(e.target.value); invalidate(); }} slotProps={{ htmlInput: { maxLength: 1000 } }} /><Button disabled={busy} onClick={() => { setReplacing(null); setDraft([]); setChosen(null); setOcrDraftId(null); invalidate(); }}>Cancel revision</Button></>}
+      {ocrDraftId && <Typography variant="body2">Linked to a reviewed OCR draft. Verify every medicine and dose against the prescription.</Typography>}
       {chosen && <><Typography fontWeight={700}>Selected: {chosen.brand_name} · {chosen.strength}</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField label={`Quantity per dose (${units[chosen.form]})`} type="number" value={quantity} onChange={e => setQuantity(e.target.value)} slotProps={{ htmlInput: { min: .001, step: .001 } }} />
@@ -98,13 +118,13 @@ export function MedicineView({ patient, user }: { patient: Patient | null; user:
         <TextField select label="Meal relation" value={meal} onChange={e => setMeal(e.target.value)}><MenuItem value="none">Not specified</MenuItem><MenuItem value="before_meal">Before meal</MenuItem><MenuItem value="after_meal">After meal</MenuItem></TextField>
         <TextField label="Prescription instructions (optional)" value={instructions} onChange={e => setInstructions(e.target.value)} />
         <Button disabled={busy} variant="outlined" onClick={addItem}>Add to proposed list</Button></>}
-      {draft.map((d, i) => <Stack key={i} direction="row" justifyContent="space-between"><Typography>{d.medicine.brand_name} · {d.item.quantity_per_dose} {d.item.unit} · {d.item.start_date}</Typography><Button disabled={busy} onClick={() => { setDraft(draft.filter((_, n) => n !== i)); invalidate(); }}>Remove item {i + 1}</Button></Stack>)}
-      <Button variant="contained" disabled={busy || !draft.length} onClick={() => void act(async () => { invalidate(); setReview(await api<Review>(`${path}/interaction-check`, { method: 'POST', body: JSON.stringify({ items: draft.map(d => d.item) }) })); })}>Check proposed medicines</Button>
+      {draft.map((d, i) => <Stack key={i} direction="row" justifyContent="space-between"><Typography>{d.medicine.brand_name} · {d.item.quantity_per_dose} {d.item.unit} · {d.item.start_date}</Typography><Button disabled={busy} onClick={() => editItem(i)}>Edit item {i + 1}</Button><Button disabled={busy} onClick={() => { setDraft(draft.filter((_, n) => n !== i)); invalidate(); }}>Remove item {i + 1}</Button></Stack>)}
+      <Button variant="contained" disabled={busy || !draft.length || !!chosen || (!!replacing && changeReason.trim().length < 3)} onClick={() => void act(async () => { invalidate(); setReview(await api<Review>(`${path}/interaction-check`, { method: 'POST', body: JSON.stringify({ items: draft.map(d => d.item), replaces_version_id: replacing?.id ?? null, change_reason: replacing ? changeReason : null, ocr_draft_id: ocrDraftId }) })); })}>Check proposed medicines</Button>
       {review && <><Typography variant="h6">Warning review</Typography><Typography>{review.coverage}</Typography>
         {!review.warnings.length && <Alert severity="info">No matches in the limited reference rules.</Alert>}
         {review.warnings.map(w => <Box key={w.id}><Alert severity={w.severity === 'critical' ? 'error' : w.severity === 'warning' ? 'warning' : 'info'}><Typography fontWeight={700}>{w.kind} · {w.severity}</Typography><Typography>{w.message}</Typography><Typography variant="caption">Source: {w.source}</Typography></Alert><FormControlLabel control={<Checkbox checked={ack.includes(w.id)} onChange={e => setAck(e.target.checked ? [...ack, w.id] : ack.filter(id => id !== w.id))} />} label={`I have reviewed this ${w.kind} warning`} /></Box>)}
         <Typography variant="caption">Acknowledgement records review, not medical approval. Review expires in 15 minutes.</Typography>
-        <Button variant="contained" disabled={busy || ack.length !== review.warnings.length} onClick={() => void act(async () => { await api(`${path}/prescriptions/confirm`, { method: 'POST', body: JSON.stringify({ check_id: review.check_id, acknowledged_warning_ids: ack }) }); setDraft([]); invalidate(); await loadPatient(); setNotice('Medicine record saved and dose schedule generated.'); })}>Confirm medicine record</Button></>}
+        <Button variant="contained" disabled={busy || ack.length !== review.warnings.length} onClick={() => void act(async () => { await api(`${path}/prescriptions/confirm`, { method: 'POST', body: JSON.stringify({ check_id: review.check_id, acknowledged_warning_ids: ack }) }); setDraft([]); setReplacing(null); setOcrDraftId(null); setChosen(null); invalidate(); await loadPatient(); setNotice('Medicine record saved and dose schedule generated.'); })}>Confirm medicine record</Button></>}
     </Stack></Paper>}
     {user.is_admin && <Paper variant="outlined" sx={{ p: 3 }}><Stack spacing={2}>
       <Typography variant="h6">Reference administration</Typography><Typography>CSV columns: generic_name, brand_name, strength, form, source_name, source_license. Up to 500 rows. Any invalid row prevents the entire import; existing identities are skipped.</Typography>

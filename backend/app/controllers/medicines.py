@@ -1,14 +1,14 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from app.controllers.dependencies import Actor, current_actor
 from app.core.database import get_db
 from app.models import AuditEvent
 from app.models.identity import utcnow
-from app.models.medicines import Medicine, InteractionRule
+from app.models.medicines import Medicine, InteractionRule, PrescriptionVersion, PrescriptionItem
 from app.schemas.contracts import Scope
-from app.schemas.medicines import ImportInput, RuleInput, AllergyInput, CheckInput, ConfirmInput
+from app.schemas.medicines import ImportInput, RuleInput, AllergyInput, CheckInput, ConfirmInput, StopInput
 from app.services.access import permissions
 from app.services.circle import locked_patient, audit
 from app.services import medicines as service
@@ -88,7 +88,7 @@ def prescriptions(patient_id: UUID, actor: Actor = Depends(current_actor), db: S
     patient = patient_access(db, actor, patient_id)
     result = []
     for item, med, version in service.active_items(db, patient.id, utcnow()):
-        result.append(dict(id=item.id, medicine=service.medicine_view(med), version_id=version.id,
+        result.append(dict(id=item.id, medicine=service.medicine_view(med), version_id=version.id, prescription_id=version.prescription_id,
             schedule_status=version.schedule_status, **{k: getattr(item, k) for k in (
             'quantity_per_dose', 'unit', 'start_date', 'end_date', 'schedule_kind', 'times_local', 'timezone', 'meal_relation', 'instructions')}))
     for row in result:
@@ -111,5 +111,36 @@ def confirm(patient_id: UUID, data: ConfirmInput, actor: Actor = Depends(current
     revision = service.reference_lock(db)
     patient = patient_access(db, actor, patient_id, True)
     result = service.confirm(db, patient, actor.user, data, utcnow(), revision)
+    db.commit()
+    return result
+
+
+@router.get('/patients/{patient_id}/prescription-history')
+def history(patient_id: UUID, offset: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=100),
+            actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    patient = patient_access(db, actor, patient_id)
+    stmt = select(PrescriptionVersion).where(PrescriptionVersion.patient_id == patient.id)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    versions = db.scalars(stmt.order_by(PrescriptionVersion.created_at.desc(), PrescriptionVersion.id).offset(offset).limit(limit)).all()
+    result = []
+    for version in versions:
+        items = db.execute(select(PrescriptionItem, Medicine).join(Medicine, Medicine.id == PrescriptionItem.medicine_id)
+            .where(PrescriptionItem.prescription_version_id == version.id).order_by(PrescriptionItem.id)).all()
+        result.append(dict(id=version.id, prescription_id=version.prescription_id, version_number=version.version_number,
+            status=version.status, current=version.status == 'confirmed' and version.effective_until is None,
+            effective_from=version.effective_from, effective_until=version.effective_until, change_reason=version.change_reason,
+            previous_version_id=version.previous_version_id, ocr_draft_id=version.ocr_draft_id,
+            items=[dict(medicine=service.medicine_view(m), **{k:getattr(i,k) for k in (
+                'medicine_id','unit','start_date','end_date','schedule_kind','times_local','timezone','meal_relation','instructions')},
+                quantity_per_dose=str(i.quantity_per_dose)) for i,m in items]))
+    return dict(items=result, total=total, offset=offset, limit=limit)
+
+
+@router.post('/patients/{patient_id}/prescriptions/{prescription_id}/stop')
+def stop(patient_id: UUID, prescription_id: UUID, data: StopInput,
+         actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    service.reference_lock(db)
+    patient = patient_access(db, actor, patient_id, True)
+    result = service.stop(db, patient, actor.user, prescription_id, data, utcnow())
     db.commit()
     return result
