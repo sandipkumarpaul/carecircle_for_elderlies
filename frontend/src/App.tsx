@@ -8,6 +8,7 @@ import { AcceptInvite } from './views/circle/AcceptInvite';
 import { CircleView } from './views/circle/CircleView';
 import { MedicineView } from './views/medicines/MedicineView';
 import { VitalsView } from './views/vitals/VitalsView';
+import { AppointmentView } from './views/appointments/AppointmentView';
 import { AlertCenter } from './views/alerts/AlertCenter';
 const initialInvite = new URLSearchParams(location.hash.slice(1)).get('invite') ?? '';
 
@@ -51,6 +52,7 @@ export default function App() {
     {user && <Box sx={{ mt: 4 }}><MedicineView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} user={user} patient={selected} /></Box>}
     {user && <Box sx={{ mt: 4 }}><AlertCenter key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
     {user && <Box id="vitals-panel" sx={{ mt: 4 }}><VitalsView key={`${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
+    {user && <Box sx={{ mt: 4 }}><AppointmentView key={`appt-${user.id}:${selected?.id}:${selected?.scopes.join(',')}`} patient={selected} /></Box>}
     <Typography variant="body2" color="text.secondary" sx={{ mt: 6 }}>CSE470 · Team Sprint 1 + Sandip and Tanjila Sprint 2 · Care circles, prescriptions, doses, vitals and alerts.</Typography>
   </Container>{createOpen && <PatientForm onClose={() => setCreateOpen(false)} onCreated={p => { setCreateOpen(false); setNotice('Patient profile created with consent.'); void loadPatients(0, p.id); }} />}</>;
 }
